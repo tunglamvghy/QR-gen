@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Generator - Material You</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        :root {
+            --primary: #6750A4;
+            --on-primary: #FFFFFF;
+            --surface: #FEF7FF;
+            --outline: #79747E;
+            --surface-variant: #E7E0EC;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--surface);
+            margin: 0;
+            padding: 16px;
+            color: #1C1B1F;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+        }
+
+        h2 { text-align: center; color: var(--primary); font-weight: 500; }
+
+        /* Input Area Style */
+        .input-card {
+            background: var(--surface-variant);
+            padding: 20px;
+            border-radius: 28px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        textarea {
+            width: 100%;
+            height: 120px;
+            border: 1px solid var(--outline);
+            border-radius: 12px;
+            padding: 12px;
+            box-sizing: border-box;
+            background: white;
+            font-size: 16px; /* Chặn zoom-in trên iPhone */
+            resize: none;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            margin-top: 16px;
+            border: none;
+            border-radius: 100px;
+            background-color: var(--primary);
+            color: var(--on-primary);
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        button:active { opacity: 0.8; }
+
+        /* QR Grid Style */
+        #qr-container {
+            display: grid;
+            grid-template-columns: 1fr; /* Mặc định 1 cột trên điện thoại */
+            gap: 16px;
+            width: 100%;
+        }
+
+        /* Thẻ QR Card */
+        .qr-card {
+            background: white;
+            padding: 16px;
+            border-radius: 24px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border: 1px solid #eee;
+        }
+
+        .qr-label {
+            margin-top: 12px;
+            font-family: monospace;
+            font-weight: bold;
+            color: var(--primary);
+            background: var(--surface-variant);
+            padding: 4px 12px;
+            border-radius: 8px;
+        }
+
+        /* Khi xoay ngang điện thoại hoặc trên tablet */
+        @media (min-width: 400px) {
+            #qr-container { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>Tạo mã QR</h2>
+        
+        <div class="input-card">
+            <textarea id="input-text" placeholder="Nhập mã: 1234; 5678; 9999..."></textarea>
+            <button onclick="generateQRs()">Tạo mã QR</button>
+        </div>
+
+        <div id="qr-container"></div>
+    </div>
+
+    <script>
+        function generateQRs() {
+            const container = document.getElementById('qr-container');
+            const rawText = document.getElementById('input-text').value;
+            container.innerHTML = ''; 
+
+            // 1. Tách chuỗi theo dấu chấm phẩy
+            // 2. Loại bỏ toàn bộ khoảng trắng trong mỗi chuỗi .replace(/\s+/g, '')
+            const items = rawText.split(';')
+                            .map(item => item.replace(/\s+/g, '')) 
+                            .filter(item => item !== "");
+
+            items.forEach(item => {
+                let finalContent = item;
+                
+                // Kiểm tra nếu chưa bắt đầu bằng "VT" (không phân biệt hoa thường)
+                if (!item.toUpperCase().startsWith("VT")) {
+                    finalContent = "VT" + item;
+                }
+
+                // Tạo Card cho mỗi mã
+                const card = document.createElement('div');
+                card.className = 'qr-card';
+
+                const qrDiv = document.createElement('div');
+                new QRCode(qrDiv, {
+                    text: finalContent,
+                    width: 160,
+                    height: 160,
+                    colorDark: "#1C1B1F",
+                    colorLight: "#ffffff",
+                    correctLevel: QRCode.CorrectLevel.H
+                });
+
+                const label = document.createElement('div');
+                label.className = 'qr-label';
+                label.innerText = finalContent;
+
+                card.appendChild(qrDiv);
+                card.appendChild(label);
+                container.appendChild(card);
+            });
+        }
+    </script>
+</body>
+</html>
