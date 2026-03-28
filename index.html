@@ -2,165 +2,162 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QR Generator - Material You</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>QR Batch - Super Swipe</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
-        :root {
-            --primary: #6750A4;
-            --on-primary: #FFFFFF;
-            --surface: #FEF7FF;
-            --outline: #79747E;
-            --surface-variant: #E7E0EC;
+        :root { --primary: #6750A4; --bg: #f4f4f9; }
+        body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; }
+        .container { width: 100%; max-width: 600px; }
+        
+        .input-card { background: #fff; padding: 20px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        textarea { width: 100%; height: 80px; border: 1px solid #ccc; border-radius: 12px; padding: 12px; font-size: 16px; box-sizing: border-box; outline: none; }
+        button#gen-btn { width: 100%; padding: 14px; margin-top: 10px; border: none; border-radius: 50px; background: var(--primary); color: white; font-size: 16px; font-weight: bold; cursor: pointer; }
+
+        /* Lưới 2 cột */
+        #qr-container { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; width: 100%; margin-top: 10px; }
+        .qr-card { background: white; padding: 12px; border-radius: 16px; display: flex; flex-direction: column; align-items: center; box-shadow: 0 2px 6px rgba(0,0,0,0.05); cursor: pointer; -webkit-tap-highlight-color: transparent; }
+        .qr-card canvas, .qr-card img { width: 100% !important; height: auto !important; border-radius: 4px; pointer-events: none; }
+        .qr-label { margin-top: 8px; font-size: 13px; font-weight: bold; color: var(--primary); font-family: monospace; }
+
+        /* Viewer toàn màn hình tối ưu Vuốt */
+        #full-viewer { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.98); display: none; flex-direction: column;
+            justify-content: center; align-items: center; z-index: 10000; 
+            touch-action: none; overflow: hidden;
         }
-
-        body {
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--surface);
-            margin: 0;
-            padding: 16px;
-            color: #1C1B1F;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+        .viewer-content { 
+            display: flex; flex-direction: column; align-items: center; width: 100%; 
+            transition: transform 0.3s ease-out, opacity 0.2s; /* Hiệu ứng lướt */
         }
+        #full-img { max-width: 85%; max-height: 60vh; border: 4px solid white; border-radius: 10px; background: white; pointer-events: none; }
+        #full-label { margin-top: 25px; color: white; font-size: 24px; font-weight: bold; font-family: monospace; }
 
-        .container {
-            width: 100%;
-            max-width: 500px;
-        }
-
-        h2 { text-align: center; color: var(--primary); font-weight: 500; }
-
-        /* Input Area Style */
-        .input-card {
-            background: var(--surface-variant);
-            padding: 20px;
-            border-radius: 28px;
-            margin-bottom: 24px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        }
-
-        textarea {
-            width: 100%;
-            height: 120px;
-            border: 1px solid var(--outline);
-            border-radius: 12px;
-            padding: 12px;
-            box-sizing: border-box;
-            background: white;
-            font-size: 16px; /* Chặn zoom-in trên iPhone */
-            resize: none;
-        }
-
-        button {
-            width: 100%;
-            padding: 14px;
-            margin-top: 16px;
-            border: none;
-            border-radius: 100px;
-            background-color: var(--primary);
-            color: var(--on-primary);
-            font-size: 16px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: opacity 0.2s;
-        }
-
-        button:active { opacity: 0.8; }
-
-        /* QR Grid Style */
-        #qr-container {
-            display: grid;
-            grid-template-columns: 1fr; /* Mặc định 1 cột trên điện thoại */
-            gap: 16px;
-            width: 100%;
-        }
-
-        /* Thẻ QR Card */
-        .qr-card {
-            background: white;
-            padding: 16px;
-            border-radius: 24px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            border: 1px solid #eee;
-        }
-
-        .qr-label {
-            margin-top: 12px;
-            font-family: monospace;
-            font-weight: bold;
-            color: var(--primary);
-            background: var(--surface-variant);
-            padding: 4px 12px;
-            border-radius: 8px;
-        }
-
-        /* Khi xoay ngang điện thoại hoặc trên tablet */
-        @media (min-width: 400px) {
-            #qr-container { grid-template-columns: repeat(2, 1fr); }
-        }
+        .close-btn { position: absolute; top: 30px; right: 20px; color: white; font-size: 45px; cursor: pointer; z-index: 10002; line-height: 1; }
+        .nav-btn { position: absolute; top: 50%; transform: translateY(-50%); color: white; font-size: 50px; padding: 30px 10px; cursor: pointer; z-index: 10001; opacity: 0.4; }
+        .prev-btn { left: 5px; }
+        .next-btn { right: 5px; }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h2>Tạo mã QR</h2>
-        
+        <h2 style="color: var(--primary); text-align: center;">QR Batch Tool</h2>
         <div class="input-card">
-            <textarea id="input-text" placeholder="Nhập mã: 1234; 5678; 9999..."></textarea>
-            <button onclick="generateQRs()">Tạo mã QR</button>
+            <textarea id="input-text" placeholder="Ví dụ: 1111; 2222; 3333"></textarea>
+            <button id="gen-btn" onclick="generateQRs()">TẠO MÃ QR</button>
         </div>
-
         <div id="qr-container"></div>
     </div>
 
+    <div id="full-viewer">
+        <div class="close-btn" onclick="closeViewer()">&times;</div>
+        <div class="nav-btn prev-btn" onclick="prevImg()">&#10094;</div>
+        
+        <div class="viewer-content" id="v-content">
+            <img id="full-img" src="">
+            <div id="full-label"></div>
+        </div>
+        
+        <div class="nav-btn next-btn" onclick="nextImg()">&#10095;</div>
+    </div>
+
     <script>
+        let qrDataArray = [];
+        let currentIndex = 0;
+
         function generateQRs() {
             const container = document.getElementById('qr-container');
             const rawText = document.getElementById('input-text').value;
             container.innerHTML = ''; 
+            qrDataArray = [];
 
-            // 1. Tách chuỗi theo dấu chấm phẩy
-            // 2. Loại bỏ toàn bộ khoảng trắng trong mỗi chuỗi .replace(/\s+/g, '')
-            const items = rawText.split(';')
-                            .map(item => item.replace(/\s+/g, '')) 
-                            .filter(item => item !== "");
+            const items = rawText.split(';').map(item => item.replace(/\s+/g, '')).filter(item => item !== "");
+            if (items.length === 0) return;
 
-            items.forEach(item => {
-                let finalContent = item;
-                
-                // Kiểm tra nếu chưa bắt đầu bằng "VT" (không phân biệt hoa thường)
-                if (!item.toUpperCase().startsWith("VT")) {
-                    finalContent = "VT" + item;
-                }
-
-                // Tạo Card cho mỗi mã
+            items.forEach((item, index) => {
+                let finalContent = item.toUpperCase().startsWith("VT") ? item : "VT" + item;
                 const card = document.createElement('div');
                 card.className = 'qr-card';
+                card.onclick = () => openViewer(index);
 
                 const qrDiv = document.createElement('div');
-                new QRCode(qrDiv, {
-                    text: finalContent,
-                    width: 160,
-                    height: 160,
-                    colorDark: "#1C1B1F",
-                    colorLight: "#ffffff",
-                    correctLevel: QRCode.CorrectLevel.H
-                });
+                new QRCode(qrDiv, { text: finalContent, width: 400, height: 400, correctLevel: QRCode.CorrectLevel.H });
+
+                setTimeout(() => {
+                    const canvas = qrDiv.querySelector('canvas');
+                    if (canvas) {
+                        qrDataArray.push({ imgSrc: canvas.toDataURL("image/png"), content: finalContent });
+                    }
+                }, 300);
 
                 const label = document.createElement('div');
                 label.className = 'qr-label';
                 label.innerText = finalContent;
-
                 card.appendChild(qrDiv);
                 card.appendChild(label);
                 container.appendChild(card);
             });
         }
+
+        const viewer = document.getElementById('full-viewer');
+        const vContent = document.getElementById('v-content');
+        const fullImg = document.getElementById('full-img');
+        const fullLabel = document.getElementById('full-label');
+
+        function updateViewer(direction) {
+            if (!qrDataArray[currentIndex]) return;
+
+            // Hiệu ứng lướt nhẹ
+            vContent.style.opacity = "0";
+            vContent.style.transform = direction === 'next' ? "translateX(20px)" : "translateX(-20px)";
+
+            setTimeout(() => {
+                fullImg.src = qrDataArray[currentIndex].imgSrc;
+                fullLabel.innerText = qrDataArray[currentIndex].content;
+                vContent.style.transform = "translateX(0)";
+                vContent.style.opacity = "1";
+            }, 150);
+        }
+
+        function openViewer(index) {
+            currentIndex = index;
+            fullImg.src = qrDataArray[currentIndex].imgSrc;
+            fullLabel.innerText = qrDataArray[currentIndex].content;
+            viewer.style.display = 'flex';
+            window.history.pushState({viewing: true}, "");
+        }
+
+        function closeViewer() { viewer.style.display = 'none'; }
+        window.onpopstate = () => closeViewer();
+
+        function nextImg() { if (currentIndex < qrDataArray.length - 1) { currentIndex++; updateViewer('next'); } }
+        function prevImg() { if (currentIndex > 0) { currentIndex--; updateViewer('prev'); } }
+
+        // --- HỆ THỐNG VUỐT CẢI TIẾN ---
+        let startX = 0;
+        let dist = 0;
+
+        viewer.addEventListener('touchstart', e => {
+            startX = e.touches[0].clientX;
+        }, false);
+
+        viewer.addEventListener('touchmove', e => {
+            // Ngăn trình duyệt cuộn dọc khi đang vuốt ngang
+            dist = e.touches[0].clientX - startX;
+        }, false);
+
+        viewer.addEventListener('touchend', e => {
+            const threshold = 60; // Độ nhạy: vuốt quá 60px sẽ chuyển ảnh
+            if (dist < -threshold) {
+                nextImg(); // Vuốt sang trái -> xem ảnh kế
+            } else if (dist > threshold) {
+                prevImg(); // Vuốt sang phải -> xem ảnh trước
+            }
+            dist = 0; // Reset khoảng cách
+        }, false);
+
     </script>
 </body>
 </html>
